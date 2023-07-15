@@ -1,7 +1,3 @@
-import './style.css'
-import javascriptLogo from './javascript.svg'
-import viteLogo from '/vite.svg'
-
 let tryPlayInterval = setInterval(tryPlay, 1000);
 
 function tryPlay() {
@@ -9,8 +5,8 @@ function tryPlay() {
     console.log("Trying to start music...");
     player.play()
         .then(() => {
-            console.log("Music started.");            
+            console.log("Music started.");
             clearInterval(tryPlayInterval);
         })
-        .catch(() =>{});
+        .catch(() => {});
 }
