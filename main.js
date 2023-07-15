@@ -1,7 +1,4 @@
-let tryPlayInterval = setInterval(tryPlay, 1000);
-
 function tryPlay() {
-    let player = document.querySelector("audio");
     console.log("Trying to start music...");
     player.play()
         .then(() => {
@@ -10,3 +7,12 @@ function tryPlay() {
         })
         .catch(() => {});
 }
+
+let player = document.querySelector("audio");
+let tryPlayInterval = setInterval(tryPlay, 1000);
+
+let audioUrlField = document.querySelector("#audio-url");
+audioUrlField.addEventListener("change", () => {
+    player.setAttribute("src", audioUrlField.value);
+    player.play();
+});
