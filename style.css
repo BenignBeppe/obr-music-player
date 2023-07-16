@@ -1,3 +1,69 @@
 audio {
     min-width: 100%;
 }
+
+.track {
+    padding: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.track.playing {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.track .label {
+    border-radius: 0;
+    font-size: inherit;
+}
+
+/* From the players tab */
+body {
+    color: rgb(255, 255, 255);
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.00938em;
+}
+
+button {
+    display: inline-flex;
+    -moz-box-align: center;
+    align-items: center;
+    -moz-box-pack: center;
+    justify-content: center;
+    position: relative;
+    box-sizing: border-box;
+    background-color: transparent;
+    outline: 0px;
+    border: 0px none;
+    margin: 0px;
+    cursor: pointer;
+    user-select: none;
+    vertical-align: middle;
+    appearance: none;
+    text-decoration: none;
+    text-align: center;
+    flex: 0 0 auto;
+    font-size: 1.5rem;
+    padding: 8px;
+    border-radius: 50%;
+    overflow: visible;
+    transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+    color: inherit;
+}
+
+button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+button img {
+    user-select: none;
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    fill: currentcolor;
+    flex-shrink: 0;
+    transition: fill 200ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+    font-size: 1.5rem;
+}

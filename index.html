@@ -9,6 +9,20 @@
     </head>
     <body>
         <audio controls loop></audio>
-        <input id="audio-url" type="text">
+        <button id="add-track">
+            <img src="/images/add.svg">
+        </button>
+        <ol id="track-list"></ol>
+
+        <div id="templates" hidden>
+            <li class="track">
+                <div>
+                    <button class="label"></button>
+                    <button id="remove-track">
+                        <img src="/images/remove.svg">
+                    </button>
+                </div>
+            </li>
+        </div>
     </body>
 </html>

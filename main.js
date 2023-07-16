@@ -18,33 +18,121 @@ function tryPlay() {
         .catch(() => {});
 }
 
-function playTrack(url) {
-    player.setAttribute("src", url);
-    player.play();
-}
-
 async function init() {
     let metadata = await OBR.scene.getMetadata();
-    let trackUrl = metadata[getPluginId("trackUrl")];
-    player.setAttribute("src", trackUrl);
+    let currentTrackUrl = metadata[getPluginId("trackUrl")];
+    player.setAttribute("src", currentTrackUrl);
     tryPlayInterval = setInterval(tryPlay, 1000);
     OBR.scene.onMetadataChange((metadata) => {
-        let newTrackUrl = metadata[getPluginId("trackUrl")];
-        if(newTrackUrl !== trackUrl) {
-            trackUrl = playTrack(newTrackUrl);
+        let trackUrl = metadata[getPluginId("trackUrl")];
+        if(trackUrl === currentTrackUrl) {
+            return;
         }
+
+        player.setAttribute("src", trackUrl);
+        player.play();
+        currentTrackUrl = trackUrl;
+        updateTrackList();
     });
+    updateTrackList();
+}
+
+async function updateTrackList() {
+    let metadata = await OBR.scene.getMetadata();
+    let tracks = metadata[getPluginId("tracks")];
+    if(!tracks) {
+        return;
+    }
+
+    let trackElements = [];
+    let trackUrl = metadata[getPluginId("trackUrl")];
+    let playingIndex = tracks.findIndex(t => t.url === trackUrl);
+    for(let [index, track] of tracks.entries()) {
+        let template = document.querySelector("#templates .track");
+        let element = template.cloneNode(true);
+        let label = element.querySelector(".label");
+        label.textContent = track.name;
+        label.addEventListener("click", changeTrack);
+        let removeTrackButton = element.querySelector("#remove-track");
+        removeTrackButton.addEventListener("click", removeTrack);
+        if(index === playingIndex) {
+            element.classList.add("playing");
+        }
+
+        trackElements.push(element);
+    }
+    let trackList = document.querySelector("#track-list");
+    trackList.replaceChildren(...trackElements);
+}
+
+async function changeTrack(event) {
+    let trackElement = event.target.closest(".track");
+    let trackElements = Array.from(document.querySelectorAll("#track-list .track"));
+    let index = trackElements.indexOf(trackElement);
+    let metadata = await OBR.scene.getMetadata();
+    let tracks = metadata[getPluginId("tracks")];
+    let track = tracks[index];
+    await OBR.scene.setMetadata({
+        [getPluginId("trackUrl")]: track.url
+    });
+}
+
+async function removeTrack(event) {
+    let trackElement = event.target.closest(".track");
+    let trackElements = Array.from(document.querySelectorAll("#track-list .track"));
+    let index = trackElements.indexOf(trackElement);
+    let metadata = await OBR.scene.getMetadata();
+    let tracks = metadata[getPluginId("tracks")];
+    let track = tracks[index];
+    let confirmed = confirm(`Are you sure you want to remove track "${track.name}" from the list?`);
+    if(!confirmed) {
+        return;
+    }
+
+    tracks.splice(index, 1);
+    await OBR.scene.setMetadata({
+        [getPluginId("tracks")]: tracks
+    });
+    log(`Removed track "${track.name}" with URL ${track.url}.`);
+    updateTrackList();
 }
 
 let player = document.querySelector("audio");
 let tryPlayInterval = null;
+let currentTrackUrl = null;
 
-let audioUrlField = document.querySelector("#audio-url");
-audioUrlField.addEventListener("change", async () => {
-    let audioUrl = audioUrlField.value;
-    OBR.scene.setMetadata({
-        [getPluginId("trackUrl")]: audioUrl
+let addTrackButton = document.querySelector("#add-track");
+addTrackButton.addEventListener("click", async () => {
+    let url = prompt("Enter URL to audio file:");
+    if(!url) {
+        return;
+    }
+
+    let metadata = await OBR.scene.getMetadata();
+    let tracks = metadata[getPluginId("tracks")] || [];
+    let matchingUrlTrack = tracks.find(t => t.url === url);
+    if(matchingUrlTrack) {
+        alert(
+            "A track with that url is already in the list: " +
+            `"${matchingUrlTrack.name}". New track will not be added.`
+        );
+        return;
+    }
+
+    let name = prompt("Enter name of track:");
+    if(!name) {
+        return;
+    }
+
+    tracks.push({
+        name: name,
+        url: url
     });
+    await OBR.scene.setMetadata({
+        [getPluginId("tracks")]: tracks
+    });
+    log(`Added track "${name}" with URL ${url}.`);
+    updateTrackList();
 });
 
 OBR.onReady(async () => {

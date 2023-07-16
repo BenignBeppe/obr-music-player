@@ -6,7 +6,7 @@
     "title": "Music player",
     "icon": "/icon.svg",
     "popover": "/",
-    "height": 100,
+    "height": 400,
     "width": 350
   }
 }
