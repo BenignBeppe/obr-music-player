@@ -13,16 +13,31 @@ function tryPlay() {
     player.play()
         .then(() => {
             log("Music started.");
-            clearInterval(tryPlayInterval);
         })
-        .catch(() => {});
+        .catch(() => {
+            log(`Failed to start music. Retrying in ${retryDelay / 1000} seconds.`);
+            setTimeout(tryPlay, retryDelay);
+        });
+}
+
+async function tryInit() {
+    // TODO: figure out a better solution to error "No scene found"
+    // when isReady() returns true.
+    log("Trying to initialise...");
+    try {
+        await init();
+        log("Initialised.");
+    } catch {
+        log(`Failed to initialise. Retrying in ${retryDelay / 1000} seconds.`);
+        setTimeout(tryInit, retryDelay);
+    }
 }
 
 async function init() {
     let metadata = await OBR.scene.getMetadata();
     let currentTrackUrl = metadata[getPluginId("trackUrl")];
     player.setAttribute("src", currentTrackUrl);
-    tryPlayInterval = setInterval(tryPlay, 1000);
+    tryPlay();
     OBR.scene.onMetadataChange((metadata) => {
         let trackUrl = metadata[getPluginId("trackUrl")];
         if(trackUrl === currentTrackUrl) {
@@ -98,7 +113,7 @@ async function removeTrack(event) {
 }
 
 let player = document.querySelector("audio");
-let tryPlayInterval = null;
+let retryDelay = 1000;
 let currentTrackUrl = null;
 
 let addTrackButton = document.querySelector("#add-track");
@@ -137,13 +152,7 @@ addTrackButton.addEventListener("click", async () => {
 
 OBR.onReady(async () => {
     if(OBR.scene.isReady()) {
-        try {
-            await init();
-        } catch {
-            // TODO: figure out a better solution to error "No scene
-            // found" when isReady() returns true.
-            setTimeout(init, 5000);
-        }
+        tryInit();
     } else {
         OBR.scene.onReadyChange((ready) => {
             if(ready) {
