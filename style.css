@@ -2,6 +2,18 @@ audio {
     min-width: 100%;
 }
 
+input[type="range"] {
+    width: 100%;
+}
+
+#controls {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.24);
+}
+
+#settings-panel {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .track {
     padding: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);

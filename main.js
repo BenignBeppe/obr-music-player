@@ -21,14 +21,13 @@ function tryPlay() {
 }
 
 async function tryInit() {
-    // TODO: figure out a better solution to error "No scene found"
-    // when isReady() returns true.
     log("Trying to initialise...");
     try {
         await init();
         log("Initialised.");
-    } catch {
+    } catch(error) {
         log(`Failed to initialise. Retrying in ${retryDelay / 1000} seconds.`);
+        console.error(error);
         setTimeout(tryInit, retryDelay);
     }
 }
@@ -37,6 +36,10 @@ async function init() {
     let metadata = await OBR.scene.getMetadata();
     let currentTrackUrl = metadata[getPluginId("trackUrl")];
     player.setAttribute("src", currentTrackUrl);
+    let settings = JSON.parse(localStorage.getItem(getPluginId())) || defaultSettings;
+    setVolume(settings.maxVolume, settings.volume);
+    maxVolumeInput.value = settings.maxVolume;
+    volumeInput.value = settings.volume;
     tryPlay();
     OBR.scene.onMetadataChange((metadata) => {
         let trackUrl = metadata[getPluginId("trackUrl")];
@@ -112,9 +115,17 @@ async function removeTrack(event) {
     updateTrackList();
 }
 
+function setVolume(maxVolume, volume) {
+    player.volume = maxVolume * volume;
+}
+
 let player = document.querySelector("audio");
 let retryDelay = 1000;
 let currentTrackUrl = null;
+let defaultSettings = {
+    maxVolume: 0.1,
+    volume: 0.5
+};
 
 let addTrackButton = document.querySelector("#add-track");
 addTrackButton.addEventListener("click", async () => {
@@ -150,8 +161,31 @@ addTrackButton.addEventListener("click", async () => {
     updateTrackList();
 });
 
+let settingsToggle = document.querySelector("#toggle-settings");
+let settingsPanel = document.querySelector("#settings-panel");
+settingsToggle.addEventListener("click", async () => {
+    settingsPanel.hidden = !settingsPanel.hidden;
+});
+
+let volumeInput = document.querySelector("#volume");
+let maxVolumeInput = document.querySelector("#max-volume");
+for(let volumeControl of [volumeInput, maxVolumeInput]) {
+    volumeControl.addEventListener("change", async () => {
+        let maxVolume = maxVolumeInput.value;
+        let volume = volumeInput.value;
+        setVolume(maxVolume, volume);
+        let settings = {
+            maxVolume: maxVolume,
+            volume: volume
+        };
+        localStorage.setItem(getPluginId(), JSON.stringify(settings));
+    });
+}
+
 OBR.onReady(async () => {
     if(OBR.scene.isReady()) {
+        // TODO: figure out a better solution to error "No scene
+        // found" when isReady() returns true.
         tryInit();
     } else {
         OBR.scene.onReadyChange((ready) => {

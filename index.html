@@ -9,9 +9,21 @@
     </head>
     <body>
         <audio controls loop></audio>
-        <button id="add-track">
-            <img src="/images/add.svg">
-        </button>
+        <section>
+            <input id="volume" type="range" min="0" max="1" step="any">
+        </section>
+        <section id="controls">
+            <button id="add-track">
+                <img src="/images/add.svg">
+            </button>
+            <button id="toggle-settings">
+                <img src="/images/settings.svg">
+            </button>
+            <section id="settings-panel" hidden>
+                <label>Max volume</label>
+                <input id="max-volume" type="range" min="0" max="1" step="0.1">
+            </section>
+        </section>
         <ol id="track-list"></ol>
 
         <div id="templates" hidden>
