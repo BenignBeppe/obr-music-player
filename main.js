@@ -20,18 +20,6 @@ function tryPlay() {
         });
 }
 
-async function tryInit() {
-    log("Trying to initialise...");
-    try {
-        await init();
-        log("Initialised.");
-    } catch(error) {
-        log(`Failed to initialise. Retrying in ${retryDelay / 1000} seconds.`);
-        console.error(error);
-        setTimeout(tryInit, retryDelay);
-    }
-}
-
 async function init() {
     let metadata = await OBR.scene.getMetadata();
     let currentTrackUrl = metadata[getPluginId("trackUrl")];
@@ -183,10 +171,8 @@ for(let volumeControl of [volumeInput, maxVolumeInput]) {
 }
 
 OBR.onReady(async () => {
-    if(OBR.scene.isReady()) {
-        // TODO: figure out a better solution to error "No scene
-        // found" when isReady() returns true.
-        tryInit();
+    if(await OBR.scene.isReady()) {
+        init();
     } else {
         OBR.scene.onReadyChange((ready) => {
             if(ready) {
