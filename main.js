@@ -51,15 +51,33 @@ async function updateTrackList() {
     }
 
     let trackElements = [];
-    let trackUrl = metadata[getPluginId("trackUrl")];
-    let playingIndex = tracks.findIndex(t => t.url === trackUrl);
+    let playingTrackUrl = metadata[getPluginId("trackUrl")];
+    let playingIndex = tracks.findIndex(t => t.url === playingTrackUrl);
     for(let [index, track] of tracks.entries()) {
         let template = document.querySelector("#templates .track");
         let element = template.cloneNode(true);
         let label = element.querySelector(".label");
         label.textContent = track.name;
-        label.addEventListener("click", changeTrack);
-        let removeTrackButton = element.querySelector("#remove-track");
+        label.setAttribute("title", track.name);
+        let playButton = element.querySelector(".play-track");
+        playButton.addEventListener("click", changeTrack);
+        let showMenuButton = element.querySelector(".show-menu");
+        let menu = element.querySelector(".menu");
+        showMenuButton.addEventListener(
+            "click",
+            () => menu.hidden = !menu.hidden
+        );
+        let editNameButton = element.querySelector(".edit-name");
+        editNameButton.addEventListener(
+            "click",
+            () => { editTrackName(track) }
+        );
+        let editUrlButton = element.querySelector(".edit-url");
+        editUrlButton.addEventListener(
+            "click",
+            () => { editTrackUrl(track) }
+        );
+        let removeTrackButton = element.querySelector(".remove");
         removeTrackButton.addEventListener("click", removeTrack);
         if(index === playingIndex) {
             element.classList.add("playing");
@@ -81,6 +99,65 @@ async function changeTrack(event) {
     await OBR.scene.setMetadata({
         [getPluginId("trackUrl")]: track.url
     });
+}
+
+function toggleShowSettings(showSettingsButton, settings) {
+    settings.hidden = !settings.hidden;
+    if(settings.hidden) {
+        showSettingsButton.classList.remove("selected");
+    } else {
+        showSettingsButton.classList.add("selected");
+    }
+}
+
+async function editTrackName(track) {
+    let name = prompt("Enter name of track:", track.name);
+    if(!name || name === track.name) {
+        return;
+    }
+
+    let tracks = (await OBR.scene.getMetadata())[getPluginId("tracks")];
+    // Rename the track with matching URL.
+    tracks.forEach(t => {
+        if(t.url === track.url) {
+            t.name = name;
+        }
+    })
+    await OBR.scene.setMetadata({
+        [getPluginId("tracks")]: tracks
+    });
+    log(`Changed track name "${track.name}" => "${name}".`);
+    updateTrackList();
+}
+
+async function editTrackUrl(track) {
+    let url = prompt("Enter URL to audio file:", track.url);
+    if(!url || url === track.url) {
+        return;
+    }
+
+    let metadata = await OBR.scene.getMetadata();
+    let tracks = metadata[getPluginId("tracks")] || [];
+    let matchingUrlTrack = tracks.find(t => t.url === url);
+    if(matchingUrlTrack) {
+        alert(
+            "A track with that URL is already in the list: " +
+            `"${matchingUrlTrack.name}". URL will not be changed.`
+        );
+        return;
+    }
+
+    // Rename the track with matching URL.
+    tracks.forEach(t => {
+        if(t.url === track.url) {
+            t.url = url;
+        }
+    })
+    await OBR.scene.setMetadata({
+        [getPluginId("tracks")]: tracks
+    });
+    log(`Changed track URL "${track.url}" => "${url}".`);
+    updateTrackList();
 }
 
 async function removeTrack(event) {
@@ -107,6 +184,24 @@ function setVolume(maxVolume, volume) {
     player.volume = maxVolume * volume;
 }
 
+
+/**
+ * Converts a URL into a suggested track name.
+ *
+ * @param {string} url
+ * @return {string}
+ */
+function makeSuggestedName(url) {
+    // Take the end bit of the path (after last slash).
+    let pathEnd = url.split("/").at(-1);
+    // Remove any file ending.
+    let fileName = pathEnd.split(".")[0]
+    // Replace space stand ins with actual spaces.
+    let name = fileName.replace(/[_+-]/g, " ");
+
+    return name;
+}
+
 let player = document.querySelector("audio");
 let retryDelay = 1000;
 let currentTrackUrl = null;
@@ -114,7 +209,6 @@ let defaultSettings = {
     maxVolume: 0.1,
     volume: 0.5
 };
-
 let addTrackButton = document.querySelector("#add-track");
 addTrackButton.addEventListener("click", async () => {
     let url = prompt("Enter URL to audio file:");
@@ -127,13 +221,14 @@ addTrackButton.addEventListener("click", async () => {
     let matchingUrlTrack = tracks.find(t => t.url === url);
     if(matchingUrlTrack) {
         alert(
-            "A track with that url is already in the list: " +
+            "A track with that URL is already in the list: " +
             `"${matchingUrlTrack.name}". New track will not be added.`
         );
         return;
     }
 
-    let name = prompt("Enter name of track:");
+    let suggestedName = makeSuggestedName(url);
+    let name = prompt("Enter name of track:", suggestedName);
     if(!name) {
         return;
     }

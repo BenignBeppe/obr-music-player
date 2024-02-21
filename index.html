@@ -14,10 +14,10 @@
         </section>
         <section id="controls">
             <button id="add-track">
-                <img src="/images/add.svg">
+                <div class="icon" style="mask-image: url(/images/add.svg)"></div>
             </button>
             <button id="toggle-settings">
-                <img src="/images/settings.svg">
+                <div class="icon" style="mask-image: url(/images/settings.svg)"></div>
             </button>
             <section id="settings-panel" hidden>
                 <label>Max volume</label>
@@ -29,11 +29,25 @@
         <div id="templates" hidden>
             <li class="track">
                 <div>
-                    <button class="label"></button>
-                    <button id="remove-track">
-                        <img src="/images/remove.svg">
+                    <button class="play-track" title="Play track">
+                        <div class="icon" style="mask-image: url(/images/play.svg)"></div>
+                    </button>
+                    <span class="label"></span>
+                    <button class="show-menu" title="Show track menu">
+                        <div class="icon" style="mask-image: url(/images/more.svg)"></div>
                     </button>
                 </div>
+                <section class="menu" hidden>
+                    <button class="edit-name" title="Edit name">
+                        <div class="icon" style="mask-image: url(/images/edit-name.svg)"></div>
+                    </button>
+                    <button class="edit-url" title="Edit URL">
+                        <div class="icon" style="mask-image: url(/images/edit-url.svg)"></div>
+                    </button>
+                    <button class="remove danger" title="Remove track">
+                        <div class="icon" style="mask-image: url(/images/remove.svg)"></div>
+                    </button>
+                </section>    
             </li>
         </div>
     </body>
