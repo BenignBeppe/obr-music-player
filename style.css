@@ -76,18 +76,15 @@ button:focus {
     background-color: #fff;
 }
 
-.selected .icon,
 .track.playing .play-track .icon,
 .track:has(.menu:not([hidden])) .show-menu .icon {
     background-color: rgb(187, 153, 255);
 }
 
-.selected:hover,
 .track.playing .play-track:hover {
     background-color: rgba(187, 153, 255, 0.08);
 }
 
-.selected:focus,
 .track.playing .play-track,
 .track:has(.menu:not([hidden])) .show-menu:focus {
     outline-color: rgb(187, 153, 255);
