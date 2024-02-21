@@ -77,7 +77,8 @@ button:focus {
 }
 
 .selected .icon,
-.track.playing .play-track .icon {
+.track.playing .play-track .icon,
+.track:has(.menu:not([hidden])) .show-menu .icon {
     background-color: rgb(187, 153, 255);
 }
 
@@ -87,7 +88,8 @@ button:focus {
 }
 
 .selected:focus,
-.track.playing .play-track {
+.track.playing .play-track,
+.track:has(.menu:not([hidden])) .show-menu:focus {
     outline-color: rgb(187, 153, 255);
 }
 

@@ -101,15 +101,6 @@ async function changeTrack(event) {
     });
 }
 
-function toggleShowSettings(showSettingsButton, settings) {
-    settings.hidden = !settings.hidden;
-    if(settings.hidden) {
-        showSettingsButton.classList.remove("selected");
-    } else {
-        showSettingsButton.classList.add("selected");
-    }
-}
-
 async function editTrackName(track) {
     let name = prompt("Enter name of track:", track.name);
     if(!name || name === track.name) {
