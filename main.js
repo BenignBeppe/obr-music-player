@@ -235,9 +235,9 @@ addTrackButton.addEventListener("click", async () => {
     updateTrackList();
 });
 
-let settingsToggle = document.querySelector("#toggle-settings");
+let showSettingsButton = document.querySelector("#show-settings");
 let settingsPanel = document.querySelector("#settings-panel");
-settingsToggle.addEventListener("click", async () => {
+showSettingsButton.addEventListener("click", () => {
     settingsPanel.hidden = !settingsPanel.hidden;
 });
 

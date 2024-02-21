@@ -77,16 +77,20 @@ button:focus {
 }
 
 .track.playing .play-track .icon,
-.track:has(.menu:not([hidden])) .show-menu .icon {
+.track:has(.menu:not([hidden])) .show-menu .icon,
+:has(#settings-panel:not([hidden])) #show-settings .icon {
     background-color: rgb(187, 153, 255);
 }
 
-.track.playing .play-track:hover {
+.track.playing .play-track:hover,
+.track:has(.menu:not([hidden])) .show-menu:hover,
+:has(#settings-panel:not([hidden])) #show-settings:hover {
     background-color: rgba(187, 153, 255, 0.08);
 }
 
 .track.playing .play-track,
-.track:has(.menu:not([hidden])) .show-menu:focus {
+.track:has(.menu:not([hidden])) .show-menu:focus,
+:has(#settings-panel:not([hidden])) #show-settings:focus {
     outline-color: rgb(187, 153, 255);
 }
 
