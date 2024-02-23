@@ -102,7 +102,12 @@ async function changeTrack(event) {
     let tracks = metadata[getPluginId("tracks")];
     let track = tracks[index];
     await OBR.scene.setMetadata({
-        [getPluginId("trackUrl")]: track.url
+        [getPluginId("trackUrl")]: track.url,
+        [getPluginId("startTime")]: Date.now()
+    });
+    console.log("metadata:", {
+        [getPluginId("trackUrl")]: track.url,
+        [getPluginId("startTime")]: Date.now()
     });
 }
 
@@ -198,6 +203,13 @@ function makeSuggestedName(url) {
     return name;
 }
 
+async function syncPosition() {
+    let metadata = await OBR.scene.getMetadata();
+    let startTime = metadata[getPluginId("startTime")];
+    let timePlayed = (Date.now() - startTime) / 1000.0;
+    player.currentTime = timePlayed % player.duration;
+}
+
 let retryDelay = 1000;
 let defaultSettings = {
     maxVolume: 0.1,
@@ -215,6 +227,10 @@ player.addEventListener("volumechange", () => {
         toggleSoundButton.classList.remove("sound-off");
     }
 });
+// Do this on "durationchange" because the duration is not available on
+// "play" event.
+player.addEventListener("durationchange", syncPosition);
+
 toggleSoundButton.addEventListener("click", () => {
     player.muted = !player.muted;
     let settings = getSettings();
