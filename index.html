@@ -3,13 +3,16 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Muisc player</title>
+        <title>Music player</title>
         <script type="module" src="/main.js"></script>
         <link rel="stylesheet" href="/style.css">
     </head>
     <body>
-        <audio controls loop></audio>
-        <section>
+        <audio loop></audio>
+        <section id="sound-settings">
+            <button id="sound-toggle" class="sound-on">
+                <div class="icon"></div>
+            </button>
             <input id="volume" type="range" min="0" max="1" step="any">
         </section>
         <section id="controls">

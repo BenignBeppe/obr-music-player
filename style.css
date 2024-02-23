@@ -2,8 +2,21 @@ audio {
     min-width: 100%;
 }
 
-input[type="range"] {
-    width: 100%;
+#sound-settings {
+    display: flex;
+    align-items: center;
+}
+
+#sound-toggle.sound-on .icon {
+    mask-image: url(/images/sound-on.svg);
+}
+
+#sound-toggle.sound-off .icon {
+    mask-image: url(/images/sound-off.svg);
+}
+
+#volume {
+    flex-grow: 1;
 }
 
 #controls {
@@ -12,6 +25,10 @@ input[type="range"] {
 
 #settings-panel {
     border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#max-volume {
+    width: 100%;
 }
 
 .track {

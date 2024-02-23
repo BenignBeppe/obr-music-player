@@ -24,10 +24,11 @@ async function init() {
     let metadata = await OBR.scene.getMetadata();
     let currentTrackUrl = metadata[getPluginId("trackUrl")];
     player.setAttribute("src", currentTrackUrl);
-    let settings = JSON.parse(localStorage.getItem(getPluginId())) || defaultSettings;
+    let settings = getSettings();
     setVolume(settings.maxVolume, settings.volume);
     maxVolumeInput.value = settings.maxVolume;
     volumeInput.value = settings.volume;
+    player.muted = !settings.soundOn;
     tryPlay();
     OBR.scene.onMetadataChange((metadata) => {
         let trackUrl = metadata[getPluginId("trackUrl")];
@@ -41,6 +42,10 @@ async function init() {
         updateTrackList();
     });
     updateTrackList();
+}
+
+function getSettings() {
+    return JSON.parse(localStorage.getItem(getPluginId())) || defaultSettings;
 }
 
 async function updateTrackList() {
@@ -70,12 +75,12 @@ async function updateTrackList() {
         let editNameButton = element.querySelector(".edit-name");
         editNameButton.addEventListener(
             "click",
-            () => { editTrackName(track) }
+            () => { editTrackName(track); }
         );
         let editUrlButton = element.querySelector(".edit-url");
         editUrlButton.addEventListener(
             "click",
-            () => { editTrackUrl(track) }
+            () => { editTrackUrl(track); }
         );
         let removeTrackButton = element.querySelector(".remove");
         removeTrackButton.addEventListener("click", removeTrack);
@@ -113,7 +118,7 @@ async function editTrackName(track) {
         if(t.url === track.url) {
             t.name = name;
         }
-    })
+    });
     await OBR.scene.setMetadata({
         [getPluginId("tracks")]: tracks
     });
@@ -143,7 +148,7 @@ async function editTrackUrl(track) {
         if(t.url === track.url) {
             t.url = url;
         }
-    })
+    });
     await OBR.scene.setMetadata({
         [getPluginId("tracks")]: tracks
     });
@@ -186,20 +191,36 @@ function makeSuggestedName(url) {
     // Take the end bit of the path (after last slash).
     let pathEnd = url.split("/").at(-1);
     // Remove any file ending.
-    let fileName = pathEnd.split(".")[0]
+    let fileName = pathEnd.split(".")[0];
     // Replace space stand ins with actual spaces.
     let name = fileName.replace(/[_+-]/g, " ");
 
     return name;
 }
 
-let player = document.querySelector("audio");
 let retryDelay = 1000;
-let currentTrackUrl = null;
 let defaultSettings = {
     maxVolume: 0.1,
-    volume: 0.5
+    volume: 0.5,
+    soundOn: false
 };
+let player = document.querySelector("audio");
+let toggleSoundButton = document.querySelector("#sound-toggle");
+player.addEventListener("volumechange", () => {
+    if(player.muted) {
+        toggleSoundButton.classList.add("sound-off");
+        toggleSoundButton.classList.remove("sound-on");
+    } else {
+        toggleSoundButton.classList.add("sound-on");
+        toggleSoundButton.classList.remove("sound-off");
+    }
+});
+toggleSoundButton.addEventListener("click", () => {
+    player.muted = !player.muted;
+    let settings = getSettings();
+    settings.soundOn = !player.muted;
+    localStorage.setItem(getPluginId(), JSON.stringify(settings));
+});
 let addTrackButton = document.querySelector("#add-track");
 addTrackButton.addEventListener("click", async () => {
     let url = prompt("Enter URL to audio file:");
@@ -244,14 +265,14 @@ showSettingsButton.addEventListener("click", () => {
 let volumeInput = document.querySelector("#volume");
 let maxVolumeInput = document.querySelector("#max-volume");
 for(let volumeControl of [volumeInput, maxVolumeInput]) {
-    volumeControl.addEventListener("change", async () => {
+    volumeControl.addEventListener("change", () => {
         let maxVolume = maxVolumeInput.value;
         let volume = volumeInput.value;
         setVolume(maxVolume, volume);
-        let settings = {
-            maxVolume: maxVolume,
-            volume: volume
-        };
+
+        let settings = getSettings();
+        settings.maxVolume = maxVolume;
+        settings.volume = volume;
         localStorage.setItem(getPluginId(), JSON.stringify(settings));
     });
 }
