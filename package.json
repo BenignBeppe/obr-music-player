@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "eslint": "^8.56.0",
+    "inquirer": "^9.2.15",
     "vite": "^4.4.0"
   },
   "dependencies": {
