@@ -29,15 +29,22 @@ async function init() {
     maxVolumeInput.value = settings.maxVolume;
     volumeInput.value = settings.volume;
     player.muted = !settings.soundOn;
-    tryPlay();
+
+    if(currentTrackUrl) {
+        tryPlay();
+    }
+    
     OBR.scene.onMetadataChange((metadata) => {
         let trackUrl = metadata[getPluginId("trackUrl")];
         if(trackUrl === currentTrackUrl) {
             return;
         }
 
+        // TODO: Fix warning when the url is empty.
         player.setAttribute("src", trackUrl);
-        player.play();
+        if(trackUrl) {
+            player.play();
+        }
         currentTrackUrl = trackUrl;
         updateTrackList();
     });
@@ -65,7 +72,7 @@ async function updateTrackList() {
         label.textContent = track.name;
         label.setAttribute("title", track.name);
         let playButton = element.querySelector(".play-track");
-        playButton.addEventListener("click", changeTrack);
+        playButton.addEventListener("click", () => {changeTrack(track);});
         let showMenuButton = element.querySelector(".show-menu");
         let menu = element.querySelector(".menu");
         showMenuButton.addEventListener(
@@ -94,19 +101,9 @@ async function updateTrackList() {
     trackList.replaceChildren(...trackElements);
 }
 
-async function changeTrack(event) {
-    let trackElement = event.target.closest(".track");
-    let trackElements = Array.from(document.querySelectorAll("#track-list .track"));
-    let index = trackElements.indexOf(trackElement);
-    let metadata = await OBR.scene.getMetadata();
-    let tracks = metadata[getPluginId("tracks")];
-    let track = tracks[index];
+async function changeTrack(track) {
     await OBR.scene.setMetadata({
-        [getPluginId("trackUrl")]: track.url,
-        [getPluginId("startTime")]: Date.now()
-    });
-    console.log("metadata:", {
-        [getPluginId("trackUrl")]: track.url,
+        [getPluginId("trackUrl")]: track ? track.url : "",
         [getPluginId("startTime")]: Date.now()
     });
 }
@@ -174,6 +171,10 @@ async function removeTrack(event) {
     }
 
     tracks.splice(index, 1);
+    let currentTrackUrl = metadata[getPluginId("trackUrl")];
+    if(track.url === currentTrackUrl) {
+        changeTrack(null);
+    }
     await OBR.scene.setMetadata({
         [getPluginId("tracks")]: tracks
     });
