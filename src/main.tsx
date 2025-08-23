@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import { PluginGate } from "./obr/PluginGate.tsx";
 import { PluginThemeProvider } from "./obr/PluginThemeProvider.tsx";
+import "./obr/index.css";
 
 import { App } from './App.tsx'
 
