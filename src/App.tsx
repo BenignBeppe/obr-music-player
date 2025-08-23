@@ -39,15 +39,6 @@ export function App() {
         return OBR.room.onMetadataChange(handleTrackUrlChange);
     }, []);
 
-    return <Stack>
-        <Audio playingUrl={playingUrl} />
-        <Controls />
-        <Divider variant="middle" />
-        <TrackList playingUrl={playingUrl} />
-    </Stack>;
-}
-
-function Audio({playingUrl}: {playingUrl: string}) {
     let audioRef = useRef(null);
 
     return <Stack>
@@ -55,7 +46,12 @@ function Audio({playingUrl}: {playingUrl: string}) {
         <Stack direction="row" sx={{ alignItems: "center" }}>
             <SoundOnToggle audioRef={audioRef} />
             <Volume audioRef={audioRef} />
+            <IconButton onClick={addTrack}>
+                <AddRounded />
+            </IconButton>
         </Stack>
+        <Divider variant="middle" />
+        <TrackList playingUrl={playingUrl} />
     </Stack>;
 }
 
@@ -117,14 +113,6 @@ function Volume({audioRef}: {audioRef: RefObject<HTMLAudioElement | null>}) {
     }
 
     return <Slider min={0} max={1} step={0.001} value={sliderValue} onChange={onChange} sx={{marginInline: 2}} />;
-}
-
-function Controls() {
-    return <section id="controls">
-        <IconButton onClick={addTrack}>
-            <AddRounded />
-        </IconButton>
-    </section>;
 }
 
 function TrackList({playingUrl}: {playingUrl: string}) {
