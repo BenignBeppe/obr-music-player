@@ -4,8 +4,8 @@
   "manifest_version": 1,
   "action": {
     "title": "Music player",
-    "icon": "/icon.svg",
-    "popover": "/",
+    "icon": "/obr-music-player/icon.svg",
+    "popover": "/obr-music-player/",
     "height": 400,
     "width": 350
   }
