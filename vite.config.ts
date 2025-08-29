@@ -8,5 +8,6 @@ export default defineConfig({
         cors: {
             origin: "https://www.owlbear.rodeo"
         }
-    }
+    },
+    base: "/obr-music-player/"
 })
