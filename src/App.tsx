@@ -1,4 +1,6 @@
 import AddRounded from "@mui/icons-material/AddRounded";
+import ArrowDownwardRounded from "@mui/icons-material/ArrowDownwardRounded";
+import ArrowUpwardRounded from "@mui/icons-material/ArrowUpwardRounded";
 import DeleteRounded from "@mui/icons-material/DeleteRounded";
 import EditRounded from "@mui/icons-material/EditRounded";
 import ExpandLessRounded from "@mui/icons-material/ExpandLessRounded";
@@ -127,13 +129,16 @@ function TrackList({playingUrl}: {playingUrl: string}) {
     }, []);
 
     return <List >
-        {tracks?.map((track) => (
-            <TrackItem key={track.url} track={track} playingUrl={playingUrl} />
+        {tracks?.map((track, index) => (
+            <TrackItem key={track.url} tracks={tracks} index={index} track={track} playingUrl={playingUrl} />
         ))}
     </List>;
 }
 
-function TrackItem({track, playingUrl}: {track: Track, playingUrl: string}) {
+function TrackItem(
+    {track, tracks, index, playingUrl}:
+    {track: Track, tracks: Track[], index: number, playingUrl: string}
+) {
     async function playTrack() {
         await OBR.room.setMetadata({
             [getPluginId("trackUrl")]: track.url,
@@ -148,6 +153,14 @@ function TrackItem({track, playingUrl}: {track: Track, playingUrl: string}) {
 
     function isPlayingTrack(): boolean {
         return playingUrl === track.url;
+    }
+
+    function atTop(): boolean {
+        return index === 0;
+    }
+
+    function atBottom(): boolean {
+        return index === tracks.length - 1;
     }
 
     return <ListItem divider disableGutters>
@@ -166,6 +179,12 @@ function TrackItem({track, playingUrl}: {track: Track, playingUrl: string}) {
                 </IconButton>
             </Stack>
             <Collapse in={open}>
+                <IconButton title="Move up" disabled={atTop()} onClick={() => moveTrackUp(track)}>
+                    <ArrowUpwardRounded />
+                </IconButton>
+                <IconButton title="Move down" disabled={atBottom()} onClick={() => moveTrackDown(track)}>
+                    <ArrowDownwardRounded />
+                </IconButton>
                 <IconButton title="Edit name" onClick={() => editTrackName(track)}>
                     <EditRounded />
                 </IconButton>
@@ -306,11 +325,40 @@ async function removeTrack(track: Track) {
         return;
     }
 
-    let index = tracks.indexOf(track);
-    index = tracks.findIndex((t) => t.url === track.url);
+    let index = tracks.findIndex((t) => t.url === track.url);
     tracks.splice(index, 1);
     await OBR.room.setMetadata({
         [getPluginId("tracks")]: tracks
     });
     log(`Removed track "${track.name}" with URL ${track.url}.`);
+}
+
+async function moveTrackUp(track: Track) {
+    await moveTrack(track, -1);
+}
+
+async function moveTrackDown(track: Track) {
+    await moveTrack(track, 1);
+}
+
+async function moveTrack(track: Track, shift: number) {
+    let metadata = await OBR.room.getMetadata();
+    let tracks = metadata[getPluginId("tracks")] as Track[];
+    let index = tracks.findIndex((t) => t.url === track.url);
+    if(index === -1) {
+        // Couldn't find track.
+        return;
+    }
+
+    let adjacentIndex = index + shift;
+    if(adjacentIndex < 0 || adjacentIndex > tracks.length - 1) {
+        // Adjacent index out of list.
+        return;
+    }
+
+    // Swap track with the one above.
+    [tracks[adjacentIndex], tracks[index]] = [tracks[index], tracks[adjacentIndex]];
+    await OBR.room.setMetadata({
+        [getPluginId("tracks")]: tracks
+    });
 }
