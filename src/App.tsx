@@ -1,24 +1,17 @@
 import AddRounded from "@mui/icons-material/AddRounded";
-import ArrowDownwardRounded from "@mui/icons-material/ArrowDownwardRounded";
-import ArrowUpwardRounded from "@mui/icons-material/ArrowUpwardRounded";
-import DeleteRounded from "@mui/icons-material/DeleteRounded";
 import EditRounded from "@mui/icons-material/EditRounded";
-import ExpandLessRounded from "@mui/icons-material/ExpandLessRounded";
-import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import LinkRounded from "@mui/icons-material/LinkRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import VolumeOffRounded from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRounded from "@mui/icons-material/VolumeUpRounded";
-import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import OBR, { type Metadata } from "@owlbear-rodeo/sdk";
 import { type RefObject, useEffect, useRef, useState } from "react";
+import { PluginListItem } from "../lib/obr-plugin/PluginListItem.tsx";
 
 const defaultSettings = {
     volume: 0.5,
@@ -146,57 +139,38 @@ function TrackItem(
         });
     }
 
-    const [open, setOpen] = useState(false);
-    function toggleOpen() {
-        setOpen(!open);
-    };
-
     function isPlayingTrack(): boolean {
         return playingUrl === track.url;
     }
 
-    function atTop(): boolean {
-        return index === 0;
-    }
+    let actionButton = <IconButton title="Play" onClick={playTrack} {...isPlayingTrack() && {color: "primary"}}>
+            <PlayArrowRounded />
+        </IconButton>;
 
-    function atBottom(): boolean {
-        return index === tracks.length - 1;
-    }
+    let buttons = [
+        <IconButton title="Edit name" onClick={() => editTrackName(track)}>
+            <EditRounded />
+        </IconButton>,
+        <IconButton title="Edit URL" onClick={() => editTrackUrl(track)}>
+            <LinkRounded />
+        </IconButton>
+    ];
+    let labelProps = {
+        color: isPlayingTrack() ? "primary" : "textPrimary"
+    };
 
-    return <ListItem divider disableGutters>
-        <Stack width="100%">
-            <Stack direction="row">
-                {/* TODO: Figure out how to keep the button size when the
-                text stretches over multiple row. */}
-                <IconButton title="Play" onClick={playTrack} {...isPlayingTrack() && {color: "primary"}}>
-                    <PlayArrowRounded />
-                </IconButton>
-                <Typography noWrap={!open} color={ isPlayingTrack() ? "primary" : "textPrimary"} sx={{ flexGrow: 1, paddingTop: 1 }}>
-                    {track.name}
-                </Typography>
-                <IconButton title="More..." {...isPlayingTrack() && {color: "primary"}} onClick={toggleOpen} >
-                    {open ? <ExpandLessRounded /> : <ExpandMoreRounded />}
-                </IconButton>
-            </Stack>
-            <Collapse in={open}>
-                <IconButton title="Move up" disabled={atTop()} onClick={() => moveTrackUp(track)}>
-                    <ArrowUpwardRounded />
-                </IconButton>
-                <IconButton title="Move down" disabled={atBottom()} onClick={() => moveTrackDown(track)}>
-                    <ArrowDownwardRounded />
-                </IconButton>
-                <IconButton title="Edit name" onClick={() => editTrackName(track)}>
-                    <EditRounded />
-                </IconButton>
-                <IconButton title="Edit URL" onClick={() => editTrackUrl(track)}>
-                    <LinkRounded />
-                </IconButton>
-                <IconButton title="Remove" color="warning" onClick={() => removeTrack(track)}>
-                    <DeleteRounded />
-                </IconButton>
-            </Collapse>
-        </Stack>
-    </ListItem>;
+    return <PluginListItem
+        key={track.url}
+        label={track.name}
+        labelProps={labelProps}
+        items={tracks}
+        index={index}
+        item={track}
+        actionButton={actionButton}
+        buttons={buttons}
+        moveItem={moveTrack}
+        removeItem={removeTrack}
+    />;
 }
 
 function getPluginId(path?: string): string {
@@ -331,14 +305,6 @@ async function removeTrack(track: Track) {
         [getPluginId("tracks")]: tracks
     });
     log(`Removed track "${track.name}" with URL ${track.url}.`);
-}
-
-async function moveTrackUp(track: Track) {
-    await moveTrack(track, -1);
-}
-
-async function moveTrackDown(track: Track) {
-    await moveTrack(track, 1);
 }
 
 async function moveTrack(track: Track, shift: number) {

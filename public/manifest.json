@@ -1,12 +1,12 @@
 {
-  "name": "Music player",
-  "version": "0.2.2-alpha",
-  "manifest_version": 1,
-  "action": {
-    "title": "Music player",
-    "icon": "/obr-music-player/icon.svg",
-    "popover": "/obr-music-player/",
-    "height": 400,
-    "width": 350
-  }
+    "name": "Music player",
+    "version": "0.2.2-alpha",
+    "manifest_version": 1,
+    "action": {
+        "title": "Music player",
+        "icon": "/obr-music-player/icon.svg",
+        "popover": "/obr-music-player/",
+        "height": 400,
+        "width": 350
+    }
 }

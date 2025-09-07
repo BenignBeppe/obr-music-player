@@ -1,0 +1,3 @@
+[submodule "lib/obr-plugin"]
+	path = lib/obr-plugin
+	url = https://github.com/BenignBeppe/obr-plugin.git

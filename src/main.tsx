@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { PluginGate } from "./obr/PluginGate.tsx";
-import { PluginThemeProvider } from "./obr/PluginThemeProvider.tsx";
-import "./obr/index.css";
+import { PluginGate } from "../lib/obr-plugin/obr/PluginGate.tsx";
+import { PluginThemeProvider } from "../lib/obr-plugin/obr/PluginThemeProvider.tsx";
+import "../lib/obr-plugin/obr/index.css";
 
 import { App } from './App.tsx'
 
