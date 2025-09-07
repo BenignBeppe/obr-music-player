@@ -1,6 +1,6 @@
 {
     "name": "Music player",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "manifest_version": 1,
     "action": {
         "title": "Music player",
