@@ -19,38 +19,41 @@ const defaultSettings = {
 };
 
 interface Track {
-    name: string,
-    url: string
+    name: string;
+    url: string;
 }
 
 export function App() {
-    let [playingUrl, setPlayingUrl] = useState<string>("");
+    let [currentTrackUrl, setCurrentTrackUrl] = useState<string>("");
+    let [soundOn, setSoundOn] = useState(getSettings().soundOn as boolean);
     useEffect(() => {
         function handleTrackUrlChange(metadata: Metadata) {
             let url = metadata[getPluginId("trackUrl")] as string;
-            setPlayingUrl(url);
+            setCurrentTrackUrl(url);
         };
         OBR.room.getMetadata().then(handleTrackUrlChange);
         return OBR.room.onMetadataChange(handleTrackUrlChange);
     }, []);
-
     let audioRef = useRef(null);
 
     return <Stack>
-        <Player trackUrl={playingUrl} audioRef={audioRef} />
+        <Player trackUrl={currentTrackUrl} audioRef={audioRef} soundOn={soundOn} />
         <Stack direction="row" sx={{ alignItems: "center" }}>
-            <SoundOnToggle audioRef={audioRef} />
+            <SoundOn soundOn={soundOn} setSoundOn={setSoundOn} />
             <Volume audioRef={audioRef} />
-            <IconButton onClick={addTrack}>
-                <AddRounded />
-            </IconButton>
+            <AddTrack />
         </Stack>
         <Divider variant="middle" />
-        <TrackList playingUrl={playingUrl} />
+        <TrackList currentTrackUrl={currentTrackUrl} />
     </Stack>;
 }
 
-function Player({trackUrl, audioRef}: {trackUrl: string, audioRef: RefObject<HTMLAudioElement | null>}) {
+function Player({trackUrl, audioRef, soundOn}: {
+        trackUrl: string,
+        audioRef: RefObject<HTMLAudioElement | null>,
+        soundOn: boolean
+    }
+) {
     async function syncPosition() {
         let metadata = await OBR.room.getMetadata();
         let startTime = metadata[getPluginId("startTime")] as number;
@@ -70,20 +73,19 @@ function Player({trackUrl, audioRef}: {trackUrl: string, audioRef: RefObject<HTM
         audio.muted = !settings.soundOn;
     }
 
-    return <audio ref={audioRef} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
+    return <audio ref={audioRef} muted={!soundOn} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
 }
 
-function SoundOnToggle({audioRef}: {audioRef: RefObject<HTMLAudioElement | null>}) {
-    let audio = audioRef.current as HTMLAudioElement;
-    let startSettings = getSettings();
-    let [soundOn, setSoundOn] = useState(startSettings.soundOn);
-
+function SoundOn({soundOn, setSoundOn}: {
+        soundOn: boolean,
+        setSoundOn: (value: boolean) => void
+    }
+) {
     function toggleSoundOn() {
-        let soundOn = audio.muted;
-        audio.muted = !soundOn;
-        setSoundOn(soundOn);
         let settings = getSettings();
-        settings.soundOn = soundOn;
+        let newSoundOn = !settings.soundOn;
+        setSoundOn(newSoundOn);
+        settings.soundOn = newSoundOn;
         localStorage.setItem(getPluginId(), JSON.stringify(settings));
     }
 
@@ -110,27 +112,152 @@ function Volume({audioRef}: {audioRef: RefObject<HTMLAudioElement | null>}) {
     return <Slider min={0} max={1} step={0.001} value={sliderValue} onChange={onChange} sx={{marginInline: 2}} />;
 }
 
-function TrackList({playingUrl}: {playingUrl: string}) {
+function AddTrack() {
+    async function addTrack() {
+        let url = prompt("Enter URL to audio file:");
+        if(!url) {
+            return;
+        }
+
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
+        let matchingUrlTrack = tracks.find(t => t.url === url);
+        if(matchingUrlTrack) {
+            alert(
+                "A track with that URL is already in the list: " +
+                `"${matchingUrlTrack.name}". New track will not be added.`
+            );
+            return;
+        }
+
+        let suggestedName = makeSuggestedName(url);
+        let name = prompt("Enter name of track:", suggestedName);
+        if(!name) {
+            return;
+        }
+
+        tracks.push({
+            name: name,
+            url: url
+        });
+        await OBR.room.setMetadata({
+            [getPluginId("tracks")]: tracks
+        });
+    }
+
+    /**
+     * Convert a URL into a suggested track name.
+     *
+     * @param {string} url
+     * @return {string}
+     */
+    function makeSuggestedName(url: string): string {
+        // Take the end bit of the path (after last slash).
+        let pathEnd = url.split("/").at(-1) as string;
+        // Remove any file ending.
+        let fileName = pathEnd.split(".")[0];
+        // Replace space stand ins with actual spaces.
+        let name = fileName.replace(/[_+-]/g, " ");
+
+        return name;
+    }
+
+    return <IconButton onClick={addTrack}>
+        <AddRounded />
+    </IconButton>;
+}
+
+function TrackList({currentTrackUrl}: {currentTrackUrl: string}) {
     let [tracks, setTracks] = useState<Track[]>([]);
     useEffect(() => {
-        function handleTracksChange(metadata: Metadata) {
+        function handleMetadataChange(metadata: Metadata) {
             let tracks = metadata[getPluginId("tracks")] as Track[];
             setTracks(tracks);
         };
-        OBR.room.getMetadata().then(handleTracksChange);
-        return OBR.room.onMetadataChange(handleTracksChange);
+        OBR.room.getMetadata().then(handleMetadataChange);
+        return OBR.room.onMetadataChange(handleMetadataChange);
     }, []);
 
     return <List >
         {tracks?.map((track, index) => (
-            <TrackItem key={track.url} tracks={tracks} index={index} track={track} playingUrl={playingUrl} />
+            <TrackItem
+                key={track.url}
+                tracks={tracks}
+                index={index}
+                track={track}
+                currentTrackUrl={currentTrackUrl}
+            />
         ))}
     </List>;
 }
 
-function TrackItem(
-    {track, tracks, index, playingUrl}:
-    {track: Track, tracks: Track[], index: number, playingUrl: string}
+function TrackItem({track, tracks, index, currentTrackUrl}:
+    {track: Track, tracks: Track[], index: number, currentTrackUrl: string}
+) {
+    let playTrack = <PlayTrack track={track} currentTrackUrl={currentTrackUrl} />;
+
+    let buttons = [
+        <EditTrackName track={track} />,
+        <EditTrackUrl track={track} />
+    ];
+    let labelProps = {
+        color: currentTrackUrl === track.url ? "primary" : "textPrimary"
+    };
+
+    async function removeTrack() {
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[];
+        let confirmed = confirm(`Are you sure you want to remove track "${track.name}" from the list?`);
+        if(!confirmed) {
+            return;
+        }
+
+        let index = tracks.findIndex((t) => t.url === track.url);
+        tracks.splice(index, 1);
+        await OBR.room.setMetadata({
+            [getPluginId("tracks")]: tracks
+        });
+        log(`Removed track "${track.name}" with URL ${track.url}.`);
+    }
+
+    async function moveTrack(track: Track, shift: number) {
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[];
+        let index = tracks.findIndex((t) => t.url === track.url);
+        if(index === -1) {
+            // Couldn't find track.
+            return;
+        }
+
+        let adjacentIndex = index + shift;
+        if(adjacentIndex < 0 || adjacentIndex > tracks.length - 1) {
+            // Adjacent index out of list.
+            return;
+        }
+
+        // Swap track with the one above.
+        [tracks[adjacentIndex], tracks[index]] = [tracks[index], tracks[adjacentIndex]];
+        await OBR.room.setMetadata({
+            [getPluginId("tracks")]: tracks
+        });
+    }
+
+    return <PluginListItem
+        key={track.url}
+        index={index}
+        item={track}
+        label={track.name}
+        labelProps={labelProps}
+        items={tracks}
+        actionButton={playTrack}
+        buttons={buttons}
+        moveItem={moveTrack}
+        removeItem={removeTrack}
+    />;
+}
+
+function PlayTrack({track, currentTrackUrl}:
+    {track: Track, currentTrackUrl: string}
 ) {
     async function playTrack() {
         await OBR.room.setMetadata({
@@ -140,37 +267,76 @@ function TrackItem(
     }
 
     function isPlayingTrack(): boolean {
-        return playingUrl === track.url;
+        return currentTrackUrl === track.url;
     }
 
-    let actionButton = <IconButton title="Play" onClick={playTrack} {...isPlayingTrack() && {color: "primary"}}>
-            <PlayArrowRounded />
-        </IconButton>;
+    return <IconButton
+        title="Play"
+        onClick={playTrack}
+        {...isPlayingTrack() && {color: "primary"}}
+    >
+        <PlayArrowRounded />
+    </IconButton>;
+}
 
-    let buttons = [
-        <IconButton title="Edit name" onClick={() => editTrackName(track)}>
-            <EditRounded />
-        </IconButton>,
-        <IconButton title="Edit URL" onClick={() => editTrackUrl(track)}>
-            <LinkRounded />
-        </IconButton>
-    ];
-    let labelProps = {
-        color: isPlayingTrack() ? "primary" : "textPrimary"
-    };
+function EditTrackName({track}: {track: Track}) {
+    async function editTrackName() {
+        let name = prompt("Enter name of track:", track.name);
+        if(!name || name === track.name) {
+            return;
+        }
 
-    return <PluginListItem
-        key={track.url}
-        label={track.name}
-        labelProps={labelProps}
-        items={tracks}
-        index={index}
-        item={track}
-        actionButton={actionButton}
-        buttons={buttons}
-        moveItem={moveTrack}
-        removeItem={removeTrack}
-    />;
+        let tracks = (await OBR.room.getMetadata())[getPluginId("tracks")] as Track[];
+        // Rename the track with matching URL.
+        tracks.forEach(t => {
+            if(t.url === track.url) {
+                t.name = name;
+            }
+        });
+        await OBR.room.setMetadata({
+            [getPluginId("tracks")]: tracks
+        });
+        log(`Changed track name "${track.name}" => "${name}".`);
+    }
+
+    return <IconButton title="Edit name" onClick={editTrackName}>
+        <EditRounded />
+    </IconButton>;
+}
+
+function EditTrackUrl({track}: {track: Track}) {
+    async function editTrackUrl() {
+        let url = prompt("Enter URL to audio file:", track.url);
+        if(!url || url === track.url) {
+            return;
+        }
+
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
+        let matchingUrlTrack = tracks.find(t => t.url === url);
+        if(matchingUrlTrack) {
+            alert(
+                "A track with that URL is already in the list: " +
+                `"${matchingUrlTrack.name}". URL will not be changed.`
+            );
+            return;
+        }
+
+        // Rename the track with matching URL.
+        tracks.forEach(t => {
+            if(t.url === track.url) {
+                t.url = url;
+            }
+        });
+        await OBR.room.setMetadata({
+            [getPluginId("tracks")]: tracks
+        });
+        log(`Changed track URL "${track.url}" => "${url}".`);
+    }
+
+    return <IconButton title="Edit URL" onClick={editTrackUrl}>
+        <LinkRounded />
+    </IconButton>
 }
 
 function getPluginId(path?: string): string {
@@ -179,55 +345,6 @@ function getPluginId(path?: string): string {
 
 function log(...message: string[]) {
     console.log(`${getPluginId()}:`, ...message);
-}
-
-async function addTrack() {
-    let url = prompt("Enter URL to audio file:");
-    if(!url) {
-        return;
-    }
-
-    let metadata = await OBR.room.getMetadata();
-    let tracks = metadata[getPluginId("tracks")] as Track[] || [];
-    let matchingUrlTrack = tracks.find(t => t.url === url);
-    if(matchingUrlTrack) {
-        alert(
-            "A track with that URL is already in the list: " +
-            `"${matchingUrlTrack.name}". New track will not be added.`
-        );
-        return;
-    }
-
-    let suggestedName = makeSuggestedName(url);
-    let name = prompt("Enter name of track:", suggestedName);
-    if(!name) {
-        return;
-    }
-
-    tracks.push({
-        name: name,
-        url: url
-    });
-    await OBR.room.setMetadata({
-        [getPluginId("tracks")]: tracks
-    });
-}
-
-/**
- * Converts a URL into a suggested track name.
- *
- * @param {string} url
- * @return {string}
- */
-function makeSuggestedName(url: string): string {
-    // Take the end bit of the path (after last slash).
-    let pathEnd = url.split("/").at(-1) as string;
-    // Remove any file ending.
-    let fileName = pathEnd.split(".")[0];
-    // Replace space stand ins with actual spaces.
-    let name = fileName.replace(/[_+-]/g, " ");
-
-    return name;
 }
 
 function getSettings() {
@@ -241,90 +358,4 @@ function getSettings() {
 function makeAdjustedVolume(value: number): number {
     let volume = Math.pow(value, 3);
     return volume;
-}
-
-async function editTrackName(track: Track) {
-    let name = prompt("Enter name of track:", track.name);
-    if(!name || name === track.name) {
-        return;
-    }
-
-    let tracks = (await OBR.room.getMetadata())[getPluginId("tracks")] as Track[];
-    // Rename the track with matching URL.
-    tracks.forEach(t => {
-        if(t.url === track.url) {
-            t.name = name;
-        }
-    });
-    await OBR.room.setMetadata({
-        [getPluginId("tracks")]: tracks
-    });
-    log(`Changed track name "${track.name}" => "${name}".`);
-}
-
-async function editTrackUrl(track: Track) {
-    let url = prompt("Enter URL to audio file:", track.url);
-    if(!url || url === track.url) {
-        return;
-    }
-
-    let metadata = await OBR.room.getMetadata();
-    let tracks = metadata[getPluginId("tracks")] as Track[] || [];
-    let matchingUrlTrack = tracks.find(t => t.url === url);
-    if(matchingUrlTrack) {
-        alert(
-            "A track with that URL is already in the list: " +
-            `"${matchingUrlTrack.name}". URL will not be changed.`
-        );
-        return;
-    }
-
-    // Rename the track with matching URL.
-    tracks.forEach(t => {
-        if(t.url === track.url) {
-            t.url = url;
-        }
-    });
-    await OBR.room.setMetadata({
-        [getPluginId("tracks")]: tracks
-    });
-    log(`Changed track URL "${track.url}" => "${url}".`);
-}
-
-async function removeTrack(track: Track) {
-    let metadata = await OBR.room.getMetadata();
-    let tracks = metadata[getPluginId("tracks")] as Track[];
-    let confirmed = confirm(`Are you sure you want to remove track "${track.name}" from the list?`);
-    if(!confirmed) {
-        return;
-    }
-
-    let index = tracks.findIndex((t) => t.url === track.url);
-    tracks.splice(index, 1);
-    await OBR.room.setMetadata({
-        [getPluginId("tracks")]: tracks
-    });
-    log(`Removed track "${track.name}" with URL ${track.url}.`);
-}
-
-async function moveTrack(track: Track, shift: number) {
-    let metadata = await OBR.room.getMetadata();
-    let tracks = metadata[getPluginId("tracks")] as Track[];
-    let index = tracks.findIndex((t) => t.url === track.url);
-    if(index === -1) {
-        // Couldn't find track.
-        return;
-    }
-
-    let adjacentIndex = index + shift;
-    if(adjacentIndex < 0 || adjacentIndex > tracks.length - 1) {
-        // Adjacent index out of list.
-        return;
-    }
-
-    // Swap track with the one above.
-    [tracks[adjacentIndex], tracks[index]] = [tracks[index], tracks[adjacentIndex]];
-    await OBR.room.setMetadata({
-        [getPluginId("tracks")]: tracks
-    });
 }
