@@ -10,7 +10,7 @@ import List from "@mui/material/List";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import OBR, { type Metadata } from "@owlbear-rodeo/sdk";
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PluginListItem } from "../lib/obr-plugin/PluginListItem.tsx";
 
 const defaultSettings = {
@@ -24,8 +24,10 @@ interface Track {
 }
 
 export function App() {
-    let [currentTrackUrl, setCurrentTrackUrl] = useState<string>("");
-    let [soundOn, setSoundOn] = useState(getSettings().soundOn as boolean);
+    let [currentTrackUrl, setCurrentTrackUrl] = useState("");
+    let [soundOn, setSoundOn] = useState(getSettings().soundOn);
+    let [volume, setVolume] = useState(getSettings().volume);
+
     useEffect(() => {
         function handleTrackUrlChange(metadata: Metadata) {
             let url = metadata[getPluginId("trackUrl")] as string;
@@ -34,13 +36,12 @@ export function App() {
         OBR.room.getMetadata().then(handleTrackUrlChange);
         return OBR.room.onMetadataChange(handleTrackUrlChange);
     }, []);
-    let audioRef = useRef(null);
 
     return <Stack>
-        <Player trackUrl={currentTrackUrl} audioRef={audioRef} soundOn={soundOn} />
+        <Player trackUrl={currentTrackUrl} />
         <Stack direction="row" sx={{ alignItems: "center" }}>
             <SoundOn soundOn={soundOn} setSoundOn={setSoundOn} />
-            <Volume audioRef={audioRef} />
+            <Volume volume={volume} setVolume={setVolume} />
             <AddTrack />
         </Stack>
         <Divider variant="middle" />
@@ -48,13 +49,15 @@ export function App() {
     </Stack>;
 }
 
-function Player({trackUrl, audioRef, soundOn}: {
-        trackUrl: string,
-        audioRef: RefObject<HTMLAudioElement | null>,
-        soundOn: boolean
-    }
-) {
+function Player({trackUrl}: {trackUrl: string}) {
+    let settings = getSettings();
+    let ref = useRef<HTMLAudioElement>(null);
+
     async function syncPosition() {
+        if(!ref.current) {
+            return;
+        }
+
         let metadata = await OBR.room.getMetadata();
         let startTime = metadata[getPluginId("startTime")] as number;
         let timePlayed = (Date.now() - startTime) / 1000.0;
@@ -62,24 +65,33 @@ function Player({trackUrl, audioRef, soundOn}: {
             // Don't sync if we just started playing. This will skip a split
             // second and miss up the intro.
             // TODO: Fix this in a more elegant way.
-            audio.currentTime = timePlayed % audio.duration;
+            ref.current.currentTime = timePlayed % ref.current.duration;
         }
     }
 
-    let audio = audioRef.current as HTMLAudioElement;
-    if(audio) {
-        let settings = getSettings();
-        audio.volume = makeAdjustedVolume(settings.volume);
-        audio.muted = !settings.soundOn;
-    }
+    useEffect(() => {
+        if(!ref.current) {
+            return;
+        }
 
-    return <audio ref={audioRef} muted={!soundOn} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
+        ref.current.muted = !settings.soundOn;
+    }, [settings.soundOn]);
+
+    useEffect(() => {
+        if(!ref.current) {
+            return;
+        }
+
+        // Ease in the actual volume to make it easier to set low volumes.
+        ref.current.volume = makeAdjustedVolume(settings.volume);
+    }, [settings.volume]);
+
+    return <audio ref={ref} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
 }
 
-function SoundOn({soundOn, setSoundOn}: {
-        soundOn: boolean,
-        setSoundOn: (value: boolean) => void
-    }
+function SoundOn(
+    {soundOn, setSoundOn}:
+    {soundOn: boolean, setSoundOn: (value: boolean) => void}
 ) {
     function toggleSoundOn() {
         let settings = getSettings();
@@ -94,22 +106,25 @@ function SoundOn({soundOn, setSoundOn}: {
     </IconButton>;
 }
 
-function Volume({audioRef}: {audioRef: RefObject<HTMLAudioElement | null>}) {
-    let audio = audioRef.current as HTMLAudioElement;
-    let startSettings = getSettings();
-    let [sliderValue, setSliderValue] = useState(startSettings.volume);
-
-    function onChange(_event: Event, value: number) {
-        setSliderValue(value);
-        // Ease in the actual volume to make it easier to set low volumes.
-        let volume = makeAdjustedVolume(value);
-        audio.volume = volume;
+function Volume(
+    {volume, setVolume}:
+    {volume: number, setVolume: (value: number) => void}
+) {
+    function onChange(_event: Event, newVolume: number) {
+        setVolume(newVolume);
         let settings = getSettings();
-        settings.volume = value;
+        settings.volume = newVolume;
         localStorage.setItem(getPluginId(), JSON.stringify(settings));
     }
 
-    return <Slider min={0} max={1} step={0.001} value={sliderValue} onChange={onChange} sx={{marginInline: 2}} />;
+    return <Slider
+        min={0}
+        max={1}
+        step={0.001}
+        value={volume}
+        onChange={onChange}
+        sx={{marginInline: 2}}
+    />;
 }
 
 function AddTrack() {
