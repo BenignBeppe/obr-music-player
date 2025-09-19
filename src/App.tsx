@@ -83,7 +83,7 @@ function Player({trackUrl}: {trackUrl: string}) {
         }
 
         // Ease in the actual volume to make it easier to set low volumes.
-        ref.current.volume = makeAdjustedVolume(settings.volume);
+        ref.current.volume = Math.pow(settings.volume, 3);
     }, [settings.volume]);
 
     return <audio ref={ref} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
@@ -368,9 +368,4 @@ function getSettings() {
         return defaultSettings;
     }
     return JSON.parse(settingsString);
-}
-
-function makeAdjustedVolume(value: number): number {
-    let volume = Math.pow(value, 3);
-    return volume;
 }
