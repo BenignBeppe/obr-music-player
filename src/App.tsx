@@ -38,8 +38,8 @@ export function App() {
     }, []);
 
     return <Stack>
-        <Player trackUrl={currentTrackUrl} />
         <Stack direction="row" sx={{ alignItems: "center" }}>
+            <Player trackUrl={currentTrackUrl} />
             <SoundOn soundOn={soundOn} setSoundOn={setSoundOn} />
             <Volume volume={volume} setVolume={setVolume} />
             <AddTrack />
@@ -52,9 +52,14 @@ export function App() {
 function Player({trackUrl}: {trackUrl: string}) {
     let settings = getSettings();
     let ref = useRef<HTMLAudioElement>(null);
+    let [blocked, setBlocked] = useState(false);
 
     async function syncPosition() {
         if(!ref.current) {
+            return;
+        }
+
+        if(!ref.current.duration) {
             return;
         }
 
@@ -68,6 +73,24 @@ function Player({trackUrl}: {trackUrl: string}) {
             ref.current.currentTime = timePlayed % ref.current.duration;
         }
     }
+
+    useEffect(() => {
+        if(blocked) {
+            return;
+        }
+
+        ref.current?.play()
+            .then(syncPosition)
+            .catch(
+                (error) => {
+                    if(error.name === "NotAllowedError" && !ref.current?.muted) {
+                        // Autoplay was blocked.
+                        setBlocked(true);
+                        OBR.notification.show("Autoplay is blocked. Click the play button or allow autoplaying audio to start music.", "WARNING")
+                    }
+                }
+            );
+    }, [blocked]);
 
     useEffect(() => {
         if(!ref.current) {
@@ -86,14 +109,19 @@ function Player({trackUrl}: {trackUrl: string}) {
         ref.current.volume = Math.pow(settings.volume, 3);
     }, [settings.volume]);
 
-    return <audio ref={ref} loop autoPlay src={trackUrl} onPlay={syncPosition} />;
+    return <>
+        {blocked && <IconButton>
+            <PlayArrowRounded onClick={() => setBlocked(false)}/>
+        </IconButton>}
+        <audio ref={ref} loop autoPlay src={trackUrl} onPlay={syncPosition} />
+    </>;
 }
 
 function SoundOn(
     {soundOn, setSoundOn}:
     {soundOn: boolean, setSoundOn: (value: boolean) => void}
 ) {
-    function toggleSoundOn() {
+    function onClick() {
         let settings = getSettings();
         let newSoundOn = !settings.soundOn;
         setSoundOn(newSoundOn);
@@ -101,7 +129,7 @@ function SoundOn(
         localStorage.setItem(getPluginId(), JSON.stringify(settings));
     }
 
-    return <IconButton title="Toggle sound" onClick={toggleSoundOn}>
+    return <IconButton title="Toggle sound" onClick={onClick}>
         {soundOn ? <VolumeUpRounded /> : <VolumeOffRounded />}
     </IconButton>;
 }
