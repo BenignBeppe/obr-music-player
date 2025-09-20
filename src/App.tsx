@@ -109,6 +109,16 @@ function Player({trackUrl}: {trackUrl: string}) {
         ref.current.volume = Math.pow(settings.volume, 3);
     }, [settings.volume]);
 
+    useEffect(() => {
+        getTrackForUrl(trackUrl).then((track) => {
+            if(!track) {
+                return;
+            }
+
+            OBR.notification.show(`Now playing "${track.name}".`)
+        });
+    }, [trackUrl]);
+
     return <>
         {blocked && <IconButton>
             <PlayArrowRounded onClick={() => setBlocked(false)}/>
@@ -162,9 +172,7 @@ function AddTrack() {
             return;
         }
 
-        let metadata = await OBR.room.getMetadata();
-        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
-        let matchingUrlTrack = tracks.find(t => t.url === url);
+        let matchingUrlTrack = await getTrackForUrl(url);
         if(matchingUrlTrack) {
             alert(
                 "A track with that URL is already in the list: " +
@@ -173,6 +181,8 @@ function AddTrack() {
             return;
         }
 
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
         let suggestedName = makeSuggestedName(url);
         let name = prompt("Enter name of track:", suggestedName);
         if(!name) {
@@ -354,9 +364,7 @@ function EditTrackUrl({track}: {track: Track}) {
             return;
         }
 
-        let metadata = await OBR.room.getMetadata();
-        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
-        let matchingUrlTrack = tracks.find(t => t.url === url);
+        let matchingUrlTrack = await getTrackForUrl(url);
         if(matchingUrlTrack) {
             alert(
                 "A track with that URL is already in the list: " +
@@ -365,6 +373,8 @@ function EditTrackUrl({track}: {track: Track}) {
             return;
         }
 
+        let metadata = await OBR.room.getMetadata();
+        let tracks = metadata[getPluginId("tracks")] as Track[] || [];
         // Rename the track with matching URL.
         tracks.forEach(t => {
             if(t.url === track.url) {
@@ -396,4 +406,15 @@ function getSettings() {
         return defaultSettings;
     }
     return JSON.parse(settingsString);
+}
+
+async function getTrackForUrl(url: string): Promise<Track | null> {
+    let metadata = await OBR.room.getMetadata();
+    let tracks = metadata[getPluginId("tracks")] as Track[];
+    let matchingUrlTrack = tracks.find(t => t.url === url);
+    if(!matchingUrlTrack) {
+        return null;
+    }
+
+    return matchingUrlTrack;
 }
